@@ -21,11 +21,11 @@ const App = () => {
     const doc = new yjs.Doc();
 
     // ✅ Use WebSocket provider (central server)
-const provider = new WebsocketProvider(
-  "https://latex-backend.vercel.app/", // 👈 your Hocuspocus server
-  "latex-room",          // room name
-  doc
-);
+    const provider = new WebsocketProvider(
+      "https://latex-backend-q4sq.onrender.com", // 👈 your Hocuspocus server
+      "latex-room", // room name
+      doc
+    );
 
     providerRef.current = provider;
 
