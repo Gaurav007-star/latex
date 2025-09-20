@@ -22,7 +22,7 @@ const App = () => {
 
     // ✅ Use WebSocket provider (central server)
 const provider = new WebsocketProvider(
-  "ws://localhost:1234", // 👈 your Hocuspocus server
+  "https://latex-backend.vercel.app/", // 👈 your Hocuspocus server
   "latex-room",          // room name
   doc
 );
