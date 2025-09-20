@@ -1,7 +1,7 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import * as yjs from "yjs";
 import Editor from "@monaco-editor/react";
-import { WebrtcProvider } from "y-webrtc";
+import { WebsocketProvider } from "y-websocket";
 import { MonacoBinding } from "y-monaco";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
@@ -13,33 +13,47 @@ const App = () => {
   const [username, setUsername] = useState("");
   const [isReady, setIsReady] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState([]);
+  const [connectionStatus, setConnectionStatus] = useState("Not connected");
 
-  // Handle Monaco + Yjs Setup
   const HandleEditorMount = (editor, monaco) => {
     editorRef.current = editor;
 
     const doc = new yjs.Doc();
-    const provider = new WebrtcProvider("latex-room", doc);
+
+    // ✅ Use WebSocket provider (central server)
+const provider = new WebsocketProvider(
+  "ws://localhost:1234", // 👈 your Hocuspocus server
+  "latex-room",          // room name
+  doc
+);
+
     providerRef.current = provider;
+
+    // Listen for connection status
+    provider.on("status", (event) => {
+      console.log("WebSocket status:", event.status);
+      setConnectionStatus(event.status); // "connected" or "disconnected"
+    });
 
     const type = doc.getText("latex-shared");
 
     new MonacoBinding(
       type,
-      editorRef.current.getModel(),
-      new Set([editorRef.current]),
+      editor.getModel(),
+      new Set([editor]),
       provider.awareness
     );
 
-    // Set local user info
-    provider.awareness.setLocalStateField("user", { name: username });
+    // ✅ Always set a username (fallback if empty)
+    provider.awareness.setLocalStateField("user", {
+      name: username || `User-${Math.floor(Math.random() * 1000)}`
+    });
 
     // Listen for awareness changes
     const updateUsers = () => {
       const states = Array.from(provider.awareness.getStates().values());
-      const users = states
-        .map((s) => s.user?.name)
-        .filter(Boolean);
+      const users = states.map((s) => s.user?.name).filter(Boolean);
+      console.log("Awareness update:", users);
       setConnectedUsers(users);
     };
 
@@ -52,7 +66,6 @@ const App = () => {
     setLatexCode(editorRef.current.getValue());
   };
 
-  // If username is not set, ask for it first
   if (!isReady) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100">
@@ -97,6 +110,7 @@ const App = () => {
 
         {/* Show connected users */}
         <div className="bg-gray-900 text-white p-2 text-sm">
+          <strong>Status:</strong> {connectionStatus} <br />
           <strong>Connected Users:</strong>{" "}
           {connectedUsers.length > 0
             ? connectedUsers.join(", ")
